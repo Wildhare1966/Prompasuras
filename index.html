@@ -1,0 +1,921 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BBP — Bigger, Better Prompts</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+
+  :root {
+    --bg: #1a1a1a;
+    --surface: #242424;
+    --surface2: #2e2e2e;
+    --surface3: #333333;
+    --border: #383838;
+    --border-hover: #505050;
+    --text: #f0f0f0;
+    --text-muted: #888;
+    --text-dim: #4a4a4a;
+    --accent: #c9963a;
+    --accent-hover: #d9a84a;
+    --accent-dim: rgba(201,150,58,0.12);
+    --accent-border: rgba(201,150,58,0.35);
+    --green: #4a9e6a;
+    --red: #e05555;
+    --radius: 8px;
+    --radius-sm: 6px;
+    --radius-xs: 4px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    padding: 36px 20px 72px;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── HEADER ─────────────────────────────────────────────────────────── */
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: -0.3px;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-weight: 300;
+    margin-bottom: 24px;
+  }
+  hr { border: none; border-top: 1px solid var(--border); margin-bottom: 24px; }
+
+  /* ── PROMPT CARD ────────────────────────────────────────────────────── */
+  .prompt-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 16px;
+    margin-bottom: 20px;
+  }
+  .prompt-card-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+  .prompt-card-text {
+    font-size: 13px;
+    color: var(--text-muted);
+    font-style: italic;
+    line-height: 1.5;
+  }
+  .prompt-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    margin-bottom: 20px;
+    transition: border-color 0.15s;
+  }
+  .prompt-wrap:focus-within { border-color: var(--border-hover); }
+  #promptInput {
+    width: 100%; min-height: 90px;
+    background: transparent; border: none; outline: none;
+    resize: vertical; font-family: inherit; font-size: 14px;
+    color: var(--text); padding: 12px 16px; line-height: 1.6;
+    border-radius: var(--radius);
+  }
+  #promptInput::placeholder { color: var(--text-dim); }
+
+  /* ── FIELD LABEL ────────────────────────────────────────────────────── */
+  .field-label {
+    font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 8px;
+  }
+
+  /* ── MODE CARDS ─────────────────────────────────────────────────────── */
+  .mode-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 20px;
+  }
+  .mode-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 16px 14px;
+    cursor: pointer; transition: all 0.14s; user-select: none;
+  }
+  .mode-card:hover { border-color: var(--border-hover); background: var(--surface2); }
+  .mode-card.selected { border-color: var(--accent-border); background: var(--accent-dim); }
+  .mode-tag {
+    font-size: 9px; font-weight: 600; letter-spacing: 0.14em;
+    text-transform: uppercase; color: var(--accent); margin-bottom: 6px;
+  }
+  .mode-name { font-size: 15px; font-weight: 600; color: var(--text); margin-bottom: 4px; }
+  .mode-desc { font-size: 11px; color: var(--text-muted); line-height: 1.45; font-weight: 300; }
+
+  /* ── BUTTONS ────────────────────────────────────────────────────────── */
+  .btn-primary {
+    background: var(--accent); color: #1a1a1a; border: none;
+    border-radius: var(--radius-sm); padding: 11px 22px;
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: background 0.14s; letter-spacing: 0.01em;
+  }
+  .btn-primary:hover { background: var(--accent-hover); }
+  .btn-primary:disabled { background: var(--surface2); color: var(--text-dim); cursor: not-allowed; }
+  .btn-full {
+    width: 100%; padding: 12px; border-radius: var(--radius-sm);
+    font-family: inherit; font-size: 13px; font-weight: 600;
+    cursor: pointer; transition: all 0.14s; letter-spacing: 0.01em;
+  }
+  .btn-generate { background: var(--accent); color: #1a1a1a; border: none; margin-top: 6px; }
+  .btn-generate:hover { background: var(--accent-hover); }
+  .btn-copy { background: var(--accent); color: #1a1a1a; border: none; }
+  .btn-copy:hover { background: var(--accent-hover); }
+  .btn-copy.copied { background: var(--green); color: white; }
+  .btn-secondary {
+    background: transparent; color: var(--text-muted);
+    border: 1px solid var(--border); padding: 11px 22px;
+    border-radius: var(--radius-sm); font-family: inherit;
+    font-size: 13px; font-weight: 500; cursor: pointer; transition: all 0.14s;
+  }
+  .btn-secondary:hover { border-color: var(--border-hover); color: var(--text); }
+
+  /* ── PANEL ──────────────────────────────────────────────────────────── */
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .panel-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;
+  }
+  .panel-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .panel-count { font-size: 11px; color: var(--text-muted); }
+
+  .progress-wrap {
+    height: 2px; background: var(--border); border-radius: 2px;
+    margin-bottom: 24px; overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%; background: var(--accent); border-radius: 2px; transition: width 0.25s ease;
+  }
+
+  /* ── QUESTIONS ──────────────────────────────────────────────────────── */
+  .q-block { margin-bottom: 22px; }
+  .q-header { display: flex; align-items: flex-start; gap: 10px; margin-bottom: 3px; }
+  .q-num {
+    flex-shrink: 0; width: 20px; height: 20px; border-radius: 50%;
+    background: var(--surface2); border: 1px solid var(--border);
+    font-size: 10px; font-weight: 600; color: var(--text-muted);
+    display: flex; align-items: center; justify-content: center;
+    margin-top: 1px; transition: all 0.15s;
+  }
+  .q-num.answered { background: var(--accent-dim); border-color: var(--accent-border); color: var(--accent); }
+  .q-label { font-size: 13px; font-weight: 500; color: var(--text); flex: 1; }
+  .q-sub { font-size: 11px; color: var(--text-muted); margin-bottom: 9px; margin-left: 30px; font-weight: 300; }
+  .q-impact {
+    font-size: 9px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 20px; margin-left: 6px; vertical-align: middle;
+  }
+  .impact-high { background: rgba(201,150,58,0.15); color: var(--accent); }
+  .impact-critical { background: rgba(201,150,58,0.25); color: var(--accent); border: 1px solid var(--accent-border); }
+
+  /* ── CHIPS ──────────────────────────────────────────────────────────── */
+  .chip-group { display: flex; flex-wrap: wrap; gap: 6px; margin-left: 30px; }
+  .chip {
+    font-size: 11px; font-weight: 500; padding: 5px 12px;
+    border-radius: 20px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted);
+    cursor: pointer; transition: all 0.12s; user-select: none;
+  }
+  .chip:hover { border-color: var(--border-hover); color: var(--text); }
+  .chip.selected { border-color: var(--accent-border); background: var(--accent-dim); color: var(--accent); }
+
+  /* ── FREE TEXT FIELDS ───────────────────────────────────────────────── */
+  .q-textarea {
+    width: 100%; margin-left: 0; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: var(--radius-sm);
+    color: var(--text); font-family: inherit; font-size: 12px;
+    padding: 10px 12px; line-height: 1.55; resize: vertical;
+    outline: none; transition: border-color 0.14s; min-height: 64px;
+    margin-left: 30px; width: calc(100% - 30px);
+  }
+  .q-textarea:focus { border-color: var(--border-hover); }
+  .q-textarea::placeholder { color: var(--text-dim); }
+
+  /* ── DIVIDER BETWEEN TIER 1 AND TIER 2 ─────────────────────────────── */
+  .tier-divider {
+    border: none; border-top: 1px dashed var(--border);
+    margin: 20px 0; position: relative;
+  }
+  .tier-label {
+    position: absolute; top: -9px; left: 0;
+    background: var(--bg); padding: 0 8px;
+    font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--text-dim);
+  }
+
+  /* ── NEGATIVE CONSTRAINTS ───────────────────────────────────────────── */
+  .constraint-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-left: 30px; }
+  .constraint-col-label {
+    font-size: 10px; font-weight: 600; letter-spacing: 0.08em;
+    text-transform: uppercase; margin-bottom: 7px;
+  }
+  .constraint-col-label.positive { color: var(--green); }
+  .constraint-col-label.negative { color: var(--red); opacity: 0.8; }
+  .neg-chip-group { display: flex; flex-wrap: wrap; gap: 5px; }
+  .neg-chip {
+    font-size: 11px; font-weight: 500; padding: 4px 11px;
+    border-radius: 20px; border: 1px solid var(--border);
+    background: transparent; color: var(--text-muted);
+    cursor: pointer; transition: all 0.12s; user-select: none;
+  }
+  .neg-chip:hover { border-color: #e0555588; color: #e05555; }
+  .neg-chip.selected { border-color: #e0555566; background: rgba(224,85,85,0.1); color: #e05555; }
+
+  /* ── ERROR ──────────────────────────────────────────────────────────── */
+  .error-msg { font-size: 11px; color: var(--red); margin-top: 8px; display: none; }
+  .error-msg.active { display: block; }
+
+  /* ── LOADING ────────────────────────────────────────────────────────── */
+  .loading-state { text-align: center; padding: 48px 16px; display: none; }
+  .loading-state.active { display: block; }
+  .spinner {
+    width: 26px; height: 26px; border: 2px solid var(--border);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.75s linear infinite; margin: 0 auto 12px;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-size: 13px; color: var(--text-muted); }
+  .loading-sub { font-size: 11px; color: var(--text-dim); margin-top: 4px; }
+
+  /* ── RESULT ─────────────────────────────────────────────────────────── */
+  .result-panel { display: none; }
+  .result-panel.active { display: block; }
+  .result-header {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
+  .result-title { font-size: 14px; font-weight: 600; color: var(--text); }
+  .result-meta { display: flex; align-items: center; gap: 8px; }
+  .result-badge {
+    font-size: 9px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+    color: var(--accent); border: 1px solid var(--accent-border);
+    padding: 2px 8px; border-radius: 20px;
+  }
+  .result-quality {
+    font-size: 10px; color: var(--text-muted);
+    background: var(--surface2); padding: 2px 8px; border-radius: 20px;
+  }
+  .result-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px 16px;
+    font-size: 12px; line-height: 1.75; color: var(--text);
+    white-space: pre-wrap; margin-bottom: 14px;
+    max-height: 380px; overflow-y: auto; font-family: 'Inter', monospace;
+  }
+  .result-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+  /* ── TWEAK panel quick layout ───────────────────────────────────────── */
+  .tweak-grid { display: grid; gap: 18px; }
+</style>
+</head>
+<body>
+
+<div class="eyebrow">Arbor Homes · Land Division</div>
+<h1>Bigger, Better Prompts</h1>
+<p class="subtitle">Turn a rough idea into a Claude-ready prompt in under 3 minutes.</p>
+<hr>
+
+<!-- ── STEP 1: MODE SELECTION ─────────────────────────────────────── -->
+<div id="step1">
+
+  <div id="inputSection">
+    <div class="field-label">Your prompt or task</div>
+    <div class="prompt-wrap">
+      <textarea id="promptInput" placeholder="Paste your rough prompt here — don't overthink it. Just describe what you need."></textarea>
+    </div>
+  </div>
+
+  <div class="prompt-card" id="promptDisplay" style="display:none">
+    <div class="prompt-card-label">Your prompt</div>
+    <div class="prompt-card-text" id="promptDisplayText"></div>
+  </div>
+
+  <div class="mode-grid">
+    <div class="mode-card" id="cardWing" onclick="selectMode('wing')">
+      <div class="mode-tag">Fastest</div>
+      <div class="mode-name">Wing It</div>
+      <div class="mode-desc">AI rewrites your prompt for clarity and intent. No questions.</div>
+    </div>
+    <div class="mode-card" id="cardTweak" onclick="selectMode('tweak')">
+      <div class="mode-tag">Balanced</div>
+      <div class="mode-name">Tweak It</div>
+      <div class="mode-desc">3 questions. AI assembles a structured, natural prompt.</div>
+    </div>
+    <div class="mode-card" id="cardBuild" onclick="selectMode('build')">
+      <div class="mode-tag">Best Results</div>
+      <div class="mode-name">Build It</div>
+      <div class="mode-desc">10 research-backed questions. Fully engineered, Claude-optimized output.</div>
+    </div>
+  </div>
+
+  <button class="btn-primary" id="continueBtn" onclick="proceed()" disabled>Continue →</button>
+</div>
+
+<!-- ── TWEAK IT ────────────────────────────────────────────────────── -->
+<div class="panel" id="tweakPanel">
+  <div class="panel-header">
+    <div class="panel-title">Tweak It</div>
+    <div class="panel-count" id="tweakCount">0 / 3</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-fill" id="tweakBar" style="width:0%"></div></div>
+
+  <div class="tweak-grid">
+    <div class="q-block">
+      <div class="q-header">
+        <div class="q-num" id="tN1">1</div>
+        <div class="q-label">Role — Who should Claude act as?</div>
+      </div>
+      <div class="q-sub">Sets Claude's operating frame for the entire response.</div>
+      <div class="chip-group" id="tQ1">
+        <div class="chip" onclick="pick(this,'tQ1','tN1')">Expert</div>
+        <div class="chip" onclick="pick(this,'tQ1','tN1')">Analyst</div>
+        <div class="chip" onclick="pick(this,'tQ1','tN1')">Advisor</div>
+        <div class="chip" onclick="pick(this,'tQ1','tN1')">Skeptic</div>
+        <div class="chip" onclick="pick(this,'tQ1','tN1')">No role</div>
+      </div>
+    </div>
+
+    <div class="q-block">
+      <div class="q-header">
+        <div class="q-num" id="tN2">2</div>
+        <div class="q-label">Format — How should the output be structured?</div>
+      </div>
+      <div class="q-sub">Tells Claude how to organize the response.</div>
+      <div class="chip-group" id="tQ2">
+        <div class="chip" onclick="pick(this,'tQ2','tN2')">Bullets</div>
+        <div class="chip" onclick="pick(this,'tQ2','tN2')">Numbered list</div>
+        <div class="chip" onclick="pick(this,'tQ2','tN2')">Prose</div>
+        <div class="chip" onclick="pick(this,'tQ2','tN2')">Table</div>
+        <div class="chip" onclick="pick(this,'tQ2','tN2')">Short answer</div>
+      </div>
+    </div>
+
+    <div class="q-block">
+      <div class="q-header">
+        <div class="q-num" id="tN3">3</div>
+        <div class="q-label">Constraints — Any hard limits?</div>
+      </div>
+      <div class="q-sub">Rules Claude must follow in its response.</div>
+      <div class="chip-group" id="tQ3">
+        <div class="chip" onclick="pick(this,'tQ3','tN3')">Concise</div>
+        <div class="chip" onclick="pick(this,'tQ3','tN3')">Thorough</div>
+        <div class="chip" onclick="pick(this,'tQ3','tN3')">No jargon</div>
+        <div class="chip" onclick="pick(this,'tQ3','tN3')">Include examples</div>
+        <div class="chip" onclick="pick(this,'tQ3','tN3')">No constraints</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="error-msg" id="tweakError">Please answer all 3 questions before generating.</div>
+  <button class="btn-full btn-generate" onclick="generate('tweak')">Generate My Prompt →</button>
+</div>
+
+<!-- ── BUILD IT ────────────────────────────────────────────────────── -->
+<div class="panel" id="buildPanel">
+  <div class="panel-header">
+    <div class="panel-title">Build It</div>
+    <div class="panel-count" id="buildCount">0 / 10</div>
+  </div>
+  <div class="progress-wrap"><div class="progress-fill" id="buildBar" style="width:0%"></div></div>
+
+  <!-- TIER 1: FOUNDATION -->
+  <div class="tier-label" style="position:relative;top:0;margin-bottom:16px;padding:0;">
+    <span style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);">Foundation — answer these first</span>
+  </div>
+
+  <!-- Q1: Objective -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN1">1</div>
+      <div class="q-label">Objective <span class="q-impact impact-critical">Critical</span></div>
+    </div>
+    <div class="q-sub">What's the core action? This anchors everything Claude does.</div>
+    <div class="chip-group" id="bQ1">
+      <div class="chip" onclick="pick(this,'bQ1','bN1')">Analyze</div>
+      <div class="chip" onclick="pick(this,'bQ1','bN1')">Summarize</div>
+      <div class="chip" onclick="pick(this,'bQ1','bN1')">Draft</div>
+      <div class="chip" onclick="pick(this,'bQ1','bN1')">Brainstorm</div>
+      <div class="chip" onclick="pick(this,'bQ1','bN1')">Explain</div>
+      <div class="chip" onclick="pick(this,'bQ1','bN1')">Compare</div>
+      <div class="chip" onclick="pick(this,'bQ1','bN1')">Recommend</div>
+      <div class="chip" onclick="pick(this,'bQ1','bN1')">Evaluate</div>
+    </div>
+  </div>
+
+  <!-- Q2: Purpose -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN2">2</div>
+      <div class="q-label">Purpose <span class="q-impact impact-critical">Critical</span></div>
+    </div>
+    <div class="q-sub">Why does this output exist? What will it be used for? This is the most commonly missed element — it's what separates useful output from merely correct output.</div>
+    <div class="chip-group" id="bQ2">
+      <div class="chip" onclick="pick(this,'bQ2','bN2')">Personal reference only</div>
+      <div class="chip" onclick="pick(this,'bQ2','bN2')">Inform a decision</div>
+      <div class="chip" onclick="pick(this,'bQ2','bN2')">Share with my team</div>
+      <div class="chip" onclick="pick(this,'bQ2','bN2')">Present to leadership</div>
+      <div class="chip" onclick="pick(this,'bQ2','bN2')">Send to a client</div>
+      <div class="chip" onclick="pick(this,'bQ2','bN2')">Publish externally</div>
+      <div class="chip" onclick="pick(this,'bQ2','bN2')">Draft for further editing</div>
+    </div>
+  </div>
+
+  <!-- Q3: Audience -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN3">3</div>
+      <div class="q-label">Audience <span class="q-impact impact-high">High impact</span></div>
+    </div>
+    <div class="q-sub">Who will read or use this? Shapes vocabulary, depth, and tone throughout.</div>
+    <div class="chip-group" id="bQ3">
+      <div class="chip" onclick="pick(this,'bQ3','bN3')">Just me</div>
+      <div class="chip" onclick="pick(this,'bQ3','bN3')">My immediate team</div>
+      <div class="chip" onclick="pick(this,'bQ3','bN3')">My manager</div>
+      <div class="chip" onclick="pick(this,'bQ3','bN3')">Senior leadership</div>
+      <div class="chip" onclick="pick(this,'bQ3','bN3')">A client</div>
+      <div class="chip" onclick="pick(this,'bQ3','bN3')">General professional audience</div>
+      <div class="chip" onclick="pick(this,'bQ3','bN3')">Technical expert</div>
+      <div class="chip" onclick="pick(this,'bQ3','bN3')">Non-technical audience</div>
+    </div>
+  </div>
+
+  <!-- Q4: Role -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN4">4</div>
+      <div class="q-label">Role <span class="q-impact impact-high">High impact</span></div>
+    </div>
+    <div class="q-sub">Who should Claude act as? Most powerful for writing and advisory tasks; less critical for pure analysis.</div>
+    <div class="chip-group" id="bQ4">
+      <div class="chip" onclick="pick(this,'bQ4','bN4')">Subject matter expert</div>
+      <div class="chip" onclick="pick(this,'bQ4','bN4')">Neutral analyst</div>
+      <div class="chip" onclick="pick(this,'bQ4','bN4')">Trusted advisor</div>
+      <div class="chip" onclick="pick(this,'bQ4','bN4')">Devil's advocate</div>
+      <div class="chip" onclick="pick(this,'bQ4','bN4')">Experienced editor</div>
+      <div class="chip" onclick="pick(this,'bQ4','bN4')">Strategic consultant</div>
+      <div class="chip" onclick="pick(this,'bQ4','bN4')">No specific role</div>
+    </div>
+  </div>
+
+  <!-- Q5: Context -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN5">5</div>
+      <div class="q-label">Context <span class="q-impact impact-critical">Critical</span></div>
+    </div>
+    <div class="q-sub">What should Claude know going in? The #1 reason prompts produce generic output is missing context.</div>
+    <div class="chip-group" id="bQ5" style="margin-bottom:8px;">
+      <div class="chip" onclick="pick(this,'bQ5','bN5')">Full context is in my prompt</div>
+      <div class="chip" onclick="pick(this,'bQ5','bN5')">Assume general knowledge only</div>
+      <div class="chip" onclick="pick(this,'bQ5','bN5')">I'm an expert — go deep</div>
+      <div class="chip" onclick="pick(this,'bQ5','bN5')">Treat me as a beginner</div>
+      <div class="chip" onclick="pick(this,'bQ5','bN5')">Assume no background on my situation</div>
+    </div>
+    <textarea class="q-textarea" id="bQ5text" placeholder="Optional: add any specific background Claude needs to know (situation, constraints, prior decisions, stakeholders)..."></textarea>
+  </div>
+
+  <hr class="tier-divider">
+  <div style="margin-bottom:16px;">
+    <span style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:var(--text-dim);">Refinement — shapes the output</span>
+  </div>
+
+  <!-- Q6: Constraints (Positive + Negative) -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN6">6</div>
+      <div class="q-label">Constraints <span class="q-impact impact-critical">Critical</span></div>
+    </div>
+    <div class="q-sub">What the output must follow — and what it must avoid. Negative constraints are the most commonly missed element in novice prompts.</div>
+    <div class="constraint-split">
+      <div>
+        <div class="constraint-col-label positive">✓ Must include / follow</div>
+        <div class="chip-group" id="bQ6pos" style="margin-left:0">
+          <div class="chip" onclick="pickMulti(this,'bQ6pos','bN6')">Be concise</div>
+          <div class="chip" onclick="pickMulti(this,'bQ6pos','bN6')">Go deep — be thorough</div>
+          <div class="chip" onclick="pickMulti(this,'bQ6pos','bN6')">Show your reasoning</div>
+          <div class="chip" onclick="pickMulti(this,'bQ6pos','bN6')">Include examples</div>
+          <div class="chip" onclick="pickMulti(this,'bQ6pos','bN6')">Stay strictly factual</div>
+          <div class="chip" onclick="pickMulti(this,'bQ6pos','bN6')">Be definitive — no hedging</div>
+          <div class="chip" onclick="pickMulti(this,'bQ6pos','bN6')">Cite or acknowledge uncertainty</div>
+        </div>
+      </div>
+      <div>
+        <div class="constraint-col-label negative">✗ Must avoid / exclude</div>
+        <div class="neg-chip-group" id="bQ6neg">
+          <div class="neg-chip" onclick="pickMulti(this,'bQ6neg','bN6')">No jargon</div>
+          <div class="neg-chip" onclick="pickMulti(this,'bQ6neg','bN6')">No hedging language</div>
+          <div class="neg-chip" onclick="pickMulti(this,'bQ6neg','bN6')">No bullet points</div>
+          <div class="neg-chip" onclick="pickMulti(this,'bQ6neg','bN6')">No preamble</div>
+          <div class="neg-chip" onclick="pickMulti(this,'bQ6neg','bN6')">No speculation</div>
+          <div class="neg-chip" onclick="pickMulti(this,'bQ6neg','bN6')">No unsolicited recommendations</div>
+          <div class="neg-chip" onclick="pickMulti(this,'bQ6neg','bN6')">No repetition of my prompt</div>
+        </div>
+      </div>
+    </div>
+    <textarea class="q-textarea" id="bQ6text" style="margin-top:10px;" placeholder="Optional: any specific additional constraints not listed above..."></textarea>
+  </div>
+
+  <!-- Q7: Tone -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN7">7</div>
+      <div class="q-label">Tone</div>
+    </div>
+    <div class="q-sub">The voice and manner of the response. Most impactful for client-facing or leadership-bound content.</div>
+    <div class="chip-group" id="bQ7">
+      <div class="chip" onclick="pick(this,'bQ7','bN7')">Professional</div>
+      <div class="chip" onclick="pick(this,'bQ7','bN7')">Conversational</div>
+      <div class="chip" onclick="pick(this,'bQ7','bN7')">Direct and assertive</div>
+      <div class="chip" onclick="pick(this,'bQ7','bN7')">Diplomatic</div>
+      <div class="chip" onclick="pick(this,'bQ7','bN7')">Technical / precise</div>
+      <div class="chip" onclick="pick(this,'bQ7','bN7')">Casual</div>
+      <div class="chip" onclick="pick(this,'bQ7','bN7')">Executive / authoritative</div>
+    </div>
+  </div>
+
+  <!-- Q8: Format -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN8">8</div>
+      <div class="q-label">Format <span class="q-impact impact-high">High impact</span></div>
+    </div>
+    <div class="q-sub">How should the output be structured? Without this, Claude defaults to what's statistically average for the content type — which is often wrong.</div>
+    <div class="chip-group" id="bQ8">
+      <div class="chip" onclick="pick(this,'bQ8','bN8')">Bullet points</div>
+      <div class="chip" onclick="pick(this,'bQ8','bN8')">Numbered list</div>
+      <div class="chip" onclick="pick(this,'bQ8','bN8')">Prose paragraphs</div>
+      <div class="chip" onclick="pick(this,'bQ8','bN8')">Table</div>
+      <div class="chip" onclick="pick(this,'bQ8','bN8')">Mixed (headers + bullets)</div>
+      <div class="chip" onclick="pick(this,'bQ8','bN8')">Executive summary format</div>
+      <div class="chip" onclick="pick(this,'bQ8','bN8')">Q&A format</div>
+      <div class="chip" onclick="pick(this,'bQ8','bN8')">No preference</div>
+    </div>
+  </div>
+
+  <!-- Q9: Examples -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN9">9</div>
+      <div class="q-label">Examples <span class="q-impact impact-high">High impact</span></div>
+    </div>
+    <div class="q-sub">Should Claude include examples? Research shows this is one of the highest-impact single instructions you can give.</div>
+    <div class="chip-group" id="bQ9" style="margin-bottom:8px;">
+      <div class="chip" onclick="pick(this,'bQ9','bN9')">Yes — real-world examples</div>
+      <div class="chip" onclick="pick(this,'bQ9','bN9')">Yes — hypothetical examples</div>
+      <div class="chip" onclick="pick(this,'bQ9','bN9')">Only if it genuinely helps</div>
+      <div class="chip" onclick="pick(this,'bQ9','bN9')">No examples</div>
+    </div>
+    <textarea class="q-textarea" id="bQ9text" placeholder="Optional: paste an example of what good output looks like. An example outperforms any description."></textarea>
+  </div>
+
+  <!-- Q10: Success Criteria -->
+  <div class="q-block">
+    <div class="q-header">
+      <div class="q-num" id="bN10">10</div>
+      <div class="q-label">Success Criteria <span class="q-impact impact-high">High impact</span></div>
+    </div>
+    <div class="q-sub">What does "done well" look like? Giving Claude a target to optimize toward is what separates prompts that are correct from prompts that are actually useful.</div>
+    <div class="chip-group" id="bQ10">
+      <div class="chip" onclick="pick(this,'bQ10','bN10')">A decision-maker could act on it immediately</div>
+      <div class="chip" onclick="pick(this,'bQ10','bN10')">A non-expert could understand it</div>
+      <div class="chip" onclick="pick(this,'bQ10','bN10')">It surfaces risks or gaps I haven't considered</div>
+      <div class="chip" onclick="pick(this,'bQ10','bN10')">It's ready to send with minimal editing</div>
+      <div class="chip" onclick="pick(this,'bQ10','bN10')">It gives me 3–5 distinct options to choose from</div>
+      <div class="chip" onclick="pick(this,'bQ10','bN10')">It's a solid first draft I can refine</div>
+      <div class="chip" onclick="pick(this,'bQ10','bN10')">It covers the topic exhaustively</div>
+    </div>
+  </div>
+
+  <div class="error-msg" id="buildError">Please answer questions 1–9 before generating. (Context and examples text fields are optional.)</div>
+  <button class="btn-full btn-generate" onclick="generate('build')">Generate My Prompt →</button>
+</div>
+
+<!-- ── LOADING ─────────────────────────────────────────────────────── -->
+<div class="loading-state" id="loadingState">
+  <div class="spinner"></div>
+  <div class="loading-text" id="loadingText">Building your prompt...</div>
+  <div class="loading-sub" id="loadingSub"></div>
+</div>
+
+<!-- ── RESULT ──────────────────────────────────────────────────────── -->
+<div class="result-panel" id="resultPanel">
+  <div class="result-header">
+    <div class="result-title">Your prompt is ready</div>
+    <div class="result-meta">
+      <div class="result-badge" id="resultBadge">Build It</div>
+    </div>
+  </div>
+  <div class="result-box" id="resultBox"></div>
+  <div class="result-actions">
+    <button class="btn-full btn-copy" id="copyBtn" onclick="copyResult()">Copy Prompt</button>
+    <button class="btn-full btn-secondary" onclick="reset()">Start Over</button>
+  </div>
+</div>
+
+<script>
+// ── INJECTED PROMPT ─────────────────────────────────────────────────────
+const initialPrompt = `INITIAL_PROMPT_PLACEHOLDER`;
+const hasInjected = initialPrompt.trim() !== '' && initialPrompt !== 'INITIAL_PROMPT_PLACEHOLDER';
+
+// ── STATE ───────────────────────────────────────────────────────────────
+let selectedMode = null;
+const A = {}; // answers: key → value
+
+// ── INIT ────────────────────────────────────────────────────────────────
+if (hasInjected) {
+  document.getElementById('inputSection').style.display = 'none';
+  document.getElementById('promptDisplay').style.display = 'block';
+  document.getElementById('promptDisplayText').textContent = initialPrompt;
+}
+
+function getPrompt() {
+  return hasInjected ? initialPrompt : (document.getElementById('promptInput').value.trim());
+}
+
+// ── MODE SELECTION ───────────────────────────────────────────────────────
+function selectMode(mode) {
+  selectedMode = mode;
+  ['wing','tweak','build'].forEach(m => {
+    const id = 'card' + m.charAt(0).toUpperCase() + m.slice(1);
+    document.getElementById(id).classList.toggle('selected', m === mode);
+  });
+  document.getElementById('continueBtn').disabled = false;
+}
+
+function proceed() {
+  const prompt = getPrompt();
+  if (!prompt) { alert('Please enter your prompt first.'); return; }
+  if (!selectedMode) return;
+  document.getElementById('step1').style.display = 'none';
+  if (selectedMode === 'wing') generate('wing');
+  else if (selectedMode === 'tweak') document.getElementById('tweakPanel').classList.add('active');
+  else document.getElementById('buildPanel').classList.add('active');
+}
+
+// ── CHIP LOGIC ───────────────────────────────────────────────────────────
+// Single-select
+function pick(el, groupId, numId) {
+  document.querySelectorAll(`#${groupId} .chip`).forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  A[groupId] = el.textContent.trim();
+  if (numId) document.getElementById(numId).classList.add('answered');
+  updateProgress();
+}
+
+// Multi-select (constraints)
+function pickMulti(el, groupId, numId) {
+  el.classList.toggle('selected');
+  if (numId) {
+    const anySelected = document.querySelectorAll(`#${groupId} .selected`).length > 0
+      || document.querySelectorAll(`#bQ6pos .selected`).length > 0
+      || document.querySelectorAll(`#bQ6neg .selected`).length > 0;
+    document.getElementById(numId).classList.toggle('answered', anySelected);
+  }
+  updateProgress();
+}
+
+function updateProgress() {
+  if (selectedMode === 'tweak') {
+    const n = ['tQ1','tQ2','tQ3'].filter(k => A[k]).length;
+    document.getElementById('tweakCount').textContent = `${n} / 3`;
+    document.getElementById('tweakBar').style.width = `${(n/3)*100}%`;
+  } else if (selectedMode === 'build') {
+    const required = ['bQ1','bQ2','bQ3','bQ4','bQ5','bQ7','bQ8','bQ9','bQ10'];
+    // Q6 counts if any chip selected in either column
+    const q6done = document.querySelectorAll('#bQ6pos .selected, #bQ6neg .selected').length > 0;
+    const n = required.filter(k => A[k]).length + (q6done ? 1 : 0);
+    document.getElementById('buildCount').textContent = `${n} / 10`;
+    document.getElementById('buildBar').style.width = `${(n/10)*100}%`;
+  }
+}
+
+// ── GENERATE ─────────────────────────────────────────────────────────────
+async function generate(mode) {
+  const prompt = getPrompt();
+
+  if (mode === 'tweak') {
+    if (['tQ1','tQ2','tQ3'].some(k => !A[k])) {
+      document.getElementById('tweakError').classList.add('active'); return;
+    }
+    document.getElementById('tweakError').classList.remove('active');
+    document.getElementById('tweakPanel').classList.remove('active');
+  }
+
+  if (mode === 'build') {
+    const required = ['bQ1','bQ2','bQ3','bQ4','bQ5','bQ7','bQ8','bQ9','bQ10'];
+    const q6done = document.querySelectorAll('#bQ6pos .selected, #bQ6neg .selected').length > 0
+      || document.getElementById('bQ6text').value.trim();
+    if (required.some(k => !A[k]) || !q6done) {
+      document.getElementById('buildError').classList.add('active'); return;
+    }
+    document.getElementById('buildError').classList.remove('active');
+    document.getElementById('buildPanel').classList.remove('active');
+  }
+
+  document.getElementById('step1').style.display = 'none';
+  document.getElementById('loadingState').classList.add('active');
+
+  const loadSeq = {
+    wing: [['Analyzing your intent...',''], ['Tightening structure and clarity...',''], ['Finalizing...','']],
+    tweak: [['Reading your 3 answers...',''], ['Structuring your prompt...','Applying role, format, and constraints'], ['Finalizing...','']],
+    build: [
+      ['Processing your 10 answers...','Applying research-backed assembly order'],
+      ['Engineering your prompt...','Role → Objective → Purpose → Context → Constraints'],
+      ['Applying Claude-specific optimizations...','XML structure, positive framing, recency placement'],
+      ['Finalizing...','']
+    ]
+  }[mode];
+
+  let si = 0;
+  const setLoad = () => {
+    document.getElementById('loadingText').textContent = loadSeq[si][0];
+    document.getElementById('loadingSub').textContent = loadSeq[si][1];
+  };
+  setLoad();
+  const iv = setInterval(() => { si = Math.min(si+1, loadSeq.length-1); setLoad(); }, 2000);
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1200,
+        system: getSystem(mode),
+        messages: [{ role: 'user', content: getUserMsg(mode, prompt) }]
+      })
+    });
+    const data = await res.json();
+    clearInterval(iv);
+    document.getElementById('loadingState').classList.remove('active');
+    if (data.error) throw new Error(data.error.message);
+    showResult(mode, data.content[0].text.trim());
+  } catch(e) {
+    clearInterval(iv);
+    document.getElementById('loadingState').classList.remove('active');
+    document.getElementById('loadingText').textContent = 'Something went wrong — please try again.';
+    document.getElementById('loadingSub').textContent = e.message || '';
+    document.getElementById('loadingState').classList.add('active');
+    setTimeout(() => { document.getElementById('loadingState').classList.remove('active'); reset(); }, 3000);
+  }
+}
+
+// ── SYSTEM PROMPTS ────────────────────────────────────────────────────────
+function getSystem(mode) {
+  if (mode === 'wing') return `You are an expert prompt engineer for Claude. Rewrite the user's rough prompt into a sharper, cleaner, Claude-ready version.
+
+Rules:
+- Preserve original intent completely — never change what they are asking for
+- Remove filler openers: Can you, Please, I need you to, I want you to, Could you
+- Begin with a precise action verb
+- Make the request specific and unambiguous
+- If no output format is specified, append one clear format instruction
+- Frame all instructions positively (tell Claude what to do, not what to avoid)
+- Return ONLY the rewritten prompt — no explanation, preamble, labels, or markdown headers`;
+
+  if (mode === 'tweak') return `You are an expert prompt engineer for Claude. Rewrite the user's rough prompt into a structured, Claude-ready version using three parameters: role, format, and constraints.
+
+Rules:
+- Preserve original intent completely
+- Naturally weave role, format, and constraints into a cohesive prompt — do not use mechanical templates
+- Role should feel like natural framing, not a bolt-on instruction
+- Frame constraints positively where possible (e.g., "respond in flowing prose" not "no bullet points")
+- Return ONLY the final prompt — no explanation, preamble, or labels`;
+
+  if (mode === 'build') return `You are an expert prompt engineer specializing in Claude. Your job is to take a user's rough prompt and 10 structured parameters and produce a fully engineered, Claude-optimized prompt.
+
+ASSEMBLY RULES — follow these precisely:
+
+1. SECTION ORDER: Always assemble in this exact sequence:
+   <role> → <objective> → <purpose> → <audience> → <context> → <constraints> → <tone> → <examples> → <format> → <task> → <success_criteria>
+
+2. XML TAGS: Wrap every section in descriptive XML tags. Claude was trained to parse these as structural signals.
+
+3. ROLE FIRST: The role sets the interpretive lens for everything that follows. It must always appear first.
+
+4. TASK LAST: The specific request must always appear last — this leverages recency effect and ensures the query is freshest in Claude's attention at generation start.
+
+5. SUCCESS CRITERIA ANCHORS THE END: Placing success criteria at the very end double-reinforces the quality target using both the recency effect and positional emphasis.
+
+6. CONSTRAINT DOUBLE-REINFORCEMENT: If there are critical hard constraints, echo the most important one at the very end after success criteria, framed as "Above all:" This ensures it is captured by both primacy (in the constraints section) and recency (at the end).
+
+7. POSITIVE FRAMING: Frame all instructions as what Claude should DO, not what it should avoid. Reserve negative framing only for hard exclusions where positive framing would be ambiguous.
+
+8. CONTEXT PLACEMENT: Background information belongs after framing (role + objective + purpose + audience) but before behavioral rules (constraints + tone). Never bury context in the middle of rules.
+
+9. EXAMPLES BEFORE FORMAT: Few-shot examples should appear after constraints establish expectations but before the format specification. This sequencing ensures examples are interpreted through the constraint lens.
+
+10. NEGATIVE CONSTRAINTS: Include a dedicated "Avoid:" sub-section within <constraints> that lists explicit exclusions. This is the most commonly missing element in novice prompts.
+
+QUALITY STANDARD: The assembled prompt should be immediately paste-ready into Claude with no further editing needed. It must be specific, unambiguous, and structured to leverage how Claude actually processes positional information.
+
+Return ONLY the final engineered prompt with XML tags — no explanation, no preamble, no meta-commentary outside the prompt structure.`;
+}
+
+// ── USER MESSAGES ─────────────────────────────────────────────────────────
+function getUserMsg(mode, prompt) {
+  if (mode === 'wing') return `Rewrite this prompt:\n\n${prompt}`;
+
+  if (mode === 'tweak') return `Original prompt: ${prompt}
+
+Parameters:
+- Role: ${A.tQ1}
+- Output format: ${A.tQ2}
+- Constraints: ${A.tQ3}
+
+Rewrite into a structured, natural, Claude-ready prompt.`;
+
+  if (mode === 'build') {
+    // Collect multi-select constraints
+    const posConstraints = [...document.querySelectorAll('#bQ6pos .selected')].map(c => c.textContent.trim());
+    const negConstraints = [...document.querySelectorAll('#bQ6neg .selected')].map(c => c.textContent.trim());
+    const extraConstraints = document.getElementById('bQ6text').value.trim();
+    const extraContext = document.getElementById('bQ5text').value.trim();
+    const exampleText = document.getElementById('bQ9text').value.trim();
+
+    return `Original prompt: ${prompt}
+
+Parameters gathered in dependency order:
+
+1. OBJECTIVE: ${A.bQ1}
+2. PURPOSE: ${A.bQ2}
+3. AUDIENCE: ${A.bQ3}
+4. ROLE: ${A.bQ4}
+5. CONTEXT LEVEL: ${A.bQ5}${extraContext ? `\nAdditional context: ${extraContext}` : ''}
+6. CONSTRAINTS:
+   - Positive (must follow): ${posConstraints.length ? posConstraints.join(', ') : 'none specified'}
+   - Negative (must avoid): ${negConstraints.length ? negConstraints.join(', ') : 'none specified'}${extraConstraints ? `\n   - Additional: ${extraConstraints}` : ''}
+7. TONE: ${A.bQ7}
+8. FORMAT: ${A.bQ8}
+9. EXAMPLES: ${A.bQ9}${exampleText ? `\nExample of good output: ${exampleText}` : ''}
+10. SUCCESS CRITERIA: ${A.bQ10}
+
+Using the assembly rules in your system prompt, engineer a fully structured, Claude-optimized prompt. Apply the correct section order, XML tags, constraint double-reinforcement, and positive framing.`;
+  }
+}
+
+// ── SHOW RESULT ───────────────────────────────────────────────────────────
+function showResult(mode, text) {
+  const labels = { wing: 'Wing It', tweak: 'Tweak It', build: 'Build It' };
+  document.getElementById('resultBadge').textContent = labels[mode];
+  document.getElementById('resultBox').textContent = text;
+  document.getElementById('resultPanel').classList.add('active');
+}
+
+// ── COPY ──────────────────────────────────────────────────────────────────
+function copyResult() {
+  navigator.clipboard.writeText(document.getElementById('resultBox').textContent).then(() => {
+    const btn = document.getElementById('copyBtn');
+    btn.textContent = 'Copied ✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy Prompt'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ── RESET ─────────────────────────────────────────────────────────────────
+function reset() {
+  selectedMode = null;
+  Object.keys(A).forEach(k => delete A[k]);
+  document.querySelectorAll('.chip, .neg-chip').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+  document.querySelectorAll('.q-num').forEach(n => n.classList.remove('answered'));
+  document.getElementById('step1').style.display = 'block';
+  document.getElementById('continueBtn').disabled = true;
+  document.getElementById('tweakPanel').classList.remove('active');
+  document.getElementById('buildPanel').classList.remove('active');
+  document.getElementById('loadingState').classList.remove('active');
+  document.getElementById('resultPanel').classList.remove('active');
+  document.getElementById('tweakBar').style.width = '0%';
+  document.getElementById('buildBar').style.width = '0%';
+  document.getElementById('tweakCount').textContent = '0 / 3';
+  document.getElementById('buildCount').textContent = '0 / 10';
+  document.getElementById('bQ5text').value = '';
+  document.getElementById('bQ6text').value = '';
+  document.getElementById('bQ9text').value = '';
+  if (!hasInjected) document.getElementById('promptInput').value = '';
+}
+</script>
+</body>
+</html>
